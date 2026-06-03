@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ArrowBigRight, ArrowRight } from "lucide-react";
+import { ArrowBigRight } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerClose,
@@ -13,7 +15,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
+import { useIosStandalone } from "@/lib/use-ios-standalone";
 
 type MobileHomeActionCardProps = {
   href: string;
@@ -68,6 +70,65 @@ const toneStyles = {
   },
 } as const;
 
+function ActionCardVisual({
+  title,
+  description,
+  size,
+  toneStyle,
+  Icon,
+}: {
+  title: string;
+  description?: string;
+  size: "default" | "large";
+  toneStyle: (typeof toneStyles)[keyof typeof toneStyles];
+  Icon: LucideIcon;
+}) {
+  return (
+    <article
+      className={`group relative mx-auto flex w-full items-center overflow-hidden rounded-[1.1rem] border px-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.14)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.99] ${
+        size === "large" ? "min-h-[104px] py-4" : "min-h-[86px] py-2.5"
+      } ${toneStyle.card}`}
+    >
+      <div className={`pointer-events-none absolute inset-0 ${toneStyle.glow}`} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+
+      <div className="relative flex w-full items-center justify-center gap-2">
+        <div
+          className={`flex shrink-0 items-center justify-center rounded-[0.95rem] ${
+            size === "large" ? "size-12" : "size-10"
+          } ${toneStyle.iconWrap}`}
+        >
+          <Icon className={`${size === "large" ? "size-5" : "size-4"} ${toneStyle.icon}`} />
+        </div>
+
+        <div className="min-w-0 flex-1 text-center">
+          <h3
+            className={`line-clamp-2 font-bold tracking-[0.01em] text-white ${
+              size === "large"
+                ? "text-[13px] leading-[1.1rem]"
+                : "text-[11px] leading-[1rem]"
+            }`}
+          >
+            {title}
+          </h3>
+
+          {description ? (
+            <p
+              className={`mt-1 font-black tracking-[0.04em] text-white/55 ${
+                size === "large"
+                  ? "line-clamp-2 text-[11px] leading-4"
+                  : "line-clamp-1 text-[10px] leading-3"
+              }`}
+            >
+              {description}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function MobileHomeActionCard({
   href,
   title,
@@ -78,6 +139,21 @@ export function MobileHomeActionCard({
   size = "default",
 }: MobileHomeActionCardProps) {
   const toneStyle = toneStyles[tone];
+  const isIosStandalone = useIosStandalone();
+
+  if (isIosStandalone) {
+    return (
+      <Link href={href} className="block w-full text-left" aria-label={`Ir a ${title}`}>
+        <ActionCardVisual
+          title={title}
+          description={description}
+          size={size}
+          toneStyle={toneStyle}
+          Icon={Icon}
+        />
+      </Link>
+    );
+  }
 
   return (
     <Drawer>
@@ -87,51 +163,13 @@ export function MobileHomeActionCard({
           className="block w-full text-left"
           aria-label={`Abrir información de ${title}`}
         >
-          <article
-            className={`group relative mx-auto flex w-full items-center overflow-hidden rounded-[1.1rem] border px-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.14)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.99] ${
-              size === "large" ? "min-h-[104px] py-4" : "min-h-[86px] py-2.5"
-            } ${toneStyle.card}`}
-          >
-            <div
-              className={`pointer-events-none absolute inset-0 ${toneStyle.glow}`}
-            />
-
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
-
-            <div className="relative flex w-full items-center justify-center gap-2">
-              <div
-                className={`flex shrink-0 items-center justify-center rounded-[0.95rem] ${
-                  size === "large" ? "size-12" : "size-10"
-                } ${toneStyle.iconWrap}`}
-              >
-                <Icon className={`${size === "large" ? "size-5" : "size-4"} ${toneStyle.icon}`} />
-              </div>
-
-              <div className="min-w-0 flex-1 text-center">
-                <h3
-                  className={`line-clamp-2 font-bold tracking-[0.01em] text-white ${
-                    size === "large"
-                      ? "text-[13px] leading-[1.1rem]"
-                      : "text-[11px] leading-[1rem]"
-                  }`}
-                >
-                  {title}
-                </h3>
-
-                {description && (
-                  <p
-                    className={`mt-1 font-black tracking-[0.04em] text-white/55 ${
-                      size === "large"
-                        ? "line-clamp-2 text-[11px] leading-4"
-                        : "line-clamp-1 text-[10px] leading-3"
-                    }`}
-                  >
-                    {description}
-                  </p>
-                )}
-              </div>
-            </div>
-          </article>
+          <ActionCardVisual
+            title={title}
+            description={description}
+            size={size}
+            toneStyle={toneStyle}
+            Icon={Icon}
+          />
         </button>
       </DrawerTrigger>
 
