@@ -88,7 +88,10 @@ function DrawerContent({
           className="pointer-events-none absolute bottom-6 left-4 w-24 opacity-[0.08]"
         />
         <div className="mx-auto mt-4 hidden h-1.5 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
-        <div className="relative z-10 flex h-auto flex-col">
+        <div
+          data-vaul-no-drag
+          className="relative z-10 flex h-auto flex-col touch-manipulation"
+        >
           {children}
         </div>
       </DrawerPrimitive.Content>
