@@ -30,6 +30,7 @@ import {
   type PronosticosQuickFilter,
 } from "@/features/pronosticos/utils/pronosticos-mobile.helpers";
 import { cheddar } from "@/lib/fonts";
+import { useIosStandalone } from "@/lib/use-ios-standalone";
 
 const PRONOSTICOS_HERO_MASCOTS = ["/mascotas/pronosticar.png"];
 
@@ -53,6 +54,7 @@ function PronosticosPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const listTopRef = useRef<HTMLDivElement | null>(null);
+  const isIosStandalone = useIosStandalone();
 
   const [partidos, setPartidos] = useState<PronosticoPartido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -186,6 +188,11 @@ function PronosticosPageContent() {
   }
 
   function handleOpenPronostico(partido: PronosticoPartido) {
+    if (isIosStandalone) {
+      void router.push(`/pronosticos/cargar/${partido.id}?returnTo=/pronosticos`);
+      return;
+    }
+
     void router.replace(`/pronosticos?partidoId=${partido.id}`, {
       scroll: false,
     });

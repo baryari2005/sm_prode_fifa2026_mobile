@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ArrowBigLeft, ClipboardPenLine, LoaderCircle, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -23,7 +23,9 @@ type ScoreField = "golesLocal" | "golesVisitante";
 export default function CargarPronosticoPartidoPage() {
   const router = useRouter();
   const params = useParams<{ partidoId: string }>();
+  const searchParams = useSearchParams();
   const partidoId = params.partidoId;
+  const returnTo = searchParams.get("returnTo") || "/inicio";
 
   const [partido, setPartido] = useState<PronosticoPartido | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,7 +158,7 @@ export default function CargarPronosticoPartidoPage() {
             type="button"
             variant="secondary"
             className="h-8 shrink-0 gap-1.5 rounded-full border border-white/16 bg-white/10 px-3 text-[11px] font-black uppercase tracking-[0.08em] text-[#fab438] shadow-[0_10px_28px_rgba(0,0,0,0.25)] backdrop-blur-md hover:bg-white/18"
-            onClick={() => router.push("/inicio")}
+            onClick={() => router.push(returnTo)}
             aria-label="Volver al inicio"
           >
             <ArrowBigLeft className="size-3.5 shrink-0" />
