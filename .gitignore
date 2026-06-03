@@ -23,6 +23,9 @@
 # misc
 .DS_Store
 *.pem
+*.zip
+promptbe.md
+mas-mundial-ui-mobile-final.md
 
 # debug
 npm-debug.log*
