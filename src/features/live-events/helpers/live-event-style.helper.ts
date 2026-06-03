@@ -2,6 +2,12 @@ import type {
   LiveEventStyle,
   LiveEventVariant,
 } from "@/features/live-events/types/live-event.types";
+import {
+  getFinalLiveEventImage,
+  getHalftimeLiveEventImage,
+  getKickoffLiveEventImage,
+  getRandomGoalLiveEventImage,
+} from "@/features/live-events/helpers/live-event-image.helper";
 
 export function getLiveEventStyle(variant: LiveEventVariant): LiveEventStyle {
   const shared = {
@@ -14,7 +20,7 @@ export function getLiveEventStyle(variant: LiveEventVariant): LiveEventStyle {
     return {
       ...shared,
       durationMs: 5200,
-      mascotSrc: "/festejos/gol1.png",
+      mascotSrc: getRandomGoalLiveEventImage(),
       accentClassName: "text-[#D7FF87]",
       glowClassName:
         "bg-[radial-gradient(circle_at_top,rgba(57,169,53,0.26),transparent_26%),radial-gradient(circle_at_bottom,rgba(247,183,49,0.18),transparent_22%),radial-gradient(circle_at_80%_20%,rgba(0,140,147,0.22),transparent_28%)]",
@@ -26,7 +32,7 @@ export function getLiveEventStyle(variant: LiveEventVariant): LiveEventStyle {
     return {
       ...shared,
       durationMs: 4200,
-      mascotSrc: "/festejos/comienza.png",
+      mascotSrc: getKickoffLiveEventImage(),
       confetti: false,
     };
   }
@@ -35,7 +41,7 @@ export function getLiveEventStyle(variant: LiveEventVariant): LiveEventStyle {
     return {
       ...shared,
       durationMs: 5000,
-      mascotSrc: "/festejos/entretiempo.png",
+      mascotSrc: getHalftimeLiveEventImage(),
       accentClassName: "text-[#7CE7EB]",
       glowClassName:
         "bg-[radial-gradient(circle_at_top,rgba(0,140,147,0.22),transparent_26%),radial-gradient(circle_at_bottom,rgba(148,163,184,0.14),transparent_22%)]",
@@ -47,7 +53,7 @@ export function getLiveEventStyle(variant: LiveEventVariant): LiveEventStyle {
     return {
       ...shared,
       durationMs: 6200,
-      mascotSrc: "/festejos/finalizado.png",
+      mascotSrc: getFinalLiveEventImage(),
       accentClassName: "text-white",
       glowClassName:
         "bg-[radial-gradient(circle_at_top,rgba(247,183,49,0.14),transparent_26%),radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_24%)]",
@@ -58,7 +64,7 @@ export function getLiveEventStyle(variant: LiveEventVariant): LiveEventStyle {
   return {
     ...shared,
     durationMs: 4500,
-    mascotSrc: "/festejos/comienza.png",
+    mascotSrc: getKickoffLiveEventImage(),
     accentClassName: "text-red-100",
     glowClassName:
       "bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.18),transparent_26%),radial-gradient(circle_at_bottom,rgba(148,163,184,0.12),transparent_22%)]",

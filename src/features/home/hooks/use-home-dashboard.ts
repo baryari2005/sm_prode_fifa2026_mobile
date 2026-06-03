@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { getFixturePhaseLabel } from "@/features/fixture/utils/fixture.helpers";
 import { pronosticosService } from "@/features/pronosticos/services/pronosticos.service";
 import type { PronosticoPartido } from "@/features/pronosticos/types/pronosticos.types";
 import { getPredictionReference } from "@/features/pronosticos/utils/pronosticos.helpers";
@@ -66,11 +67,7 @@ export function useHomeDashboard(featuredMatchId?: string) {
           pronosticados,
           totalPronosticables: pronosticos.length,
           rankingPosicion: rankingData.miRanking?.posicion ?? null,
-          faseActualLabel:
-            featured?.fase?.grupoNombre ??
-            featured?.fase?.grupoCodigo ??
-            featured?.fase?.nombre ??
-            "Fase actual",
+          faseActualLabel: featured ? getFixturePhaseLabel(featured) : "Fase actual",
           faseActualTotal: faseActualItems.length,
           faseActualJugados: faseActualItems.filter(isPlayedMatch).length,
         });

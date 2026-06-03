@@ -1,7 +1,13 @@
 "use client";
 
-import { Play, Trophy, Flag, CirclePause } from "lucide-react";
+import { CirclePause, Flag, Play, Trophy } from "lucide-react";
 
+import {
+  getFinalLiveEventImage,
+  getHalftimeLiveEventImage,
+  getKickoffLiveEventImage,
+  getRandomGoalLiveEventImage,
+} from "@/features/live-events/helpers/live-event-image.helper";
 import { useLiveEventStore } from "@/stores/live-event.store";
 
 const DEMO_BASE = {
@@ -20,20 +26,18 @@ export function LiveEventDebugPanel() {
       ...DEMO_BASE,
       variant: "kickoff",
       mensaje: "La pelota ya rueda",
-      imageSrc: "/festejos/comienza.png",
+      imageSrc: getKickoffLiveEventImage(),
     });
   }
 
   function triggerGoal() {
-    const goalIndex = Math.floor(Math.random() * 6) + 1;
-
     enqueueEvent({
       ...DEMO_BASE,
       variant: "goal",
       equipoGol: "Argentina",
       minuto: 23,
       jugador: "Lionel Messi",
-      imageSrc: `/festejos/gol${goalIndex}.png`,
+      imageSrc: getRandomGoalLiveEventImage(),
     });
   }
 
@@ -42,7 +46,7 @@ export function LiveEventDebugPanel() {
       ...DEMO_BASE,
       variant: "halftime",
       mensaje: "Respirá, todavía queda partido.",
-      imageSrc: "/festejos/entretiempo.png",
+      imageSrc: getHalftimeLiveEventImage(),
     });
   }
 
@@ -55,7 +59,7 @@ export function LiveEventDebugPanel() {
       golesLocal: 2,
       golesVisitante: 1,
       mensaje: "Resultado confirmado",
-      imageSrc: "/festejos/finalizado.png",
+      imageSrc: getFinalLiveEventImage(),
     });
   }
 

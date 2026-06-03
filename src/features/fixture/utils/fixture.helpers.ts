@@ -18,6 +18,33 @@ export type FixtureStatusMeta = {
   isCloseSoon: boolean;
 };
 
+function isGroupStageLabel(label: string | null | undefined) {
+  if (!label) {
+    return false;
+  }
+
+  const normalized = label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return normalized.includes("grupo");
+}
+
+export function getFixturePhaseLabel(partido: Pick<FixturePartido, "fase">) {
+  const phase = partido.fase;
+
+  if (!phase) {
+    return "Sin fase";
+  }
+
+  if (phase.nombre && !isGroupStageLabel(phase.nombre)) {
+    return phase.nombre;
+  }
+
+  return phase.grupoNombre ?? phase.grupoCodigo ?? phase.nombre ?? "Sin fase";
+}
+
 export function formatFixtureDate(date: string) {
   return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",

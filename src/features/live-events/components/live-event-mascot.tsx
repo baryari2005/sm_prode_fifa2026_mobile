@@ -13,7 +13,7 @@ export function LiveEventMascot({ src, alt }: LiveEventMascotProps) {
   const resolvedSrc = useMemo(() => {
     if (
       process.env.NODE_ENV === "development" &&
-      src.startsWith("/festejos/")
+      src.startsWith("/mascotas/festejos/")
     ) {
       return `${src}?v=${cacheToken}`;
     }

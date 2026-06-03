@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CalendarDays, ChevronRight, Clock3 } from "lucide-react";
 
 import { cheddar } from "@/lib/fonts";
+import { getFixturePhaseLabel } from "@/features/fixture/utils/fixture.helpers";
 import {
   getFlagSrc,
   getTeamCode,
@@ -44,11 +45,7 @@ function formatCloseCountdown(date: string) {
 }
 
 function formatMatchMeta(match: PronosticoPartido) {
-  const phaseLabel =
-    match.fase?.grupoNombre ??
-    match.fase?.grupoCodigo ??
-    match.fase?.nombre ??
-    "Fase";
+  const phaseLabel = getFixturePhaseLabel(match);
 
   const formattedDate = new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",

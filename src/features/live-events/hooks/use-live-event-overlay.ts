@@ -4,6 +4,12 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { fixtureService } from "@/features/fixture/services/fixture.service";
 import type { FixturePartido } from "@/features/fixture/types/fixture.types";
+import {
+  getFinalLiveEventImage,
+  getHalftimeLiveEventImage,
+  getKickoffLiveEventImage,
+  getRandomGoalLiveEventImage,
+} from "@/features/live-events/helpers/live-event-image.helper";
 import type {
   LiveEventPayload,
   LiveEventSnapshot,
@@ -95,7 +101,7 @@ function detectLiveEvents(
       ...buildBasePayload(partido, current),
       variant: "kickoff",
       mensaje: "La pelota ya rueda",
-      imageSrc: "/festejos/comienza.png",
+      imageSrc: getKickoffLiveEventImage(),
     });
   }
 
@@ -103,7 +109,7 @@ function detectLiveEvents(
     events.push({
       ...buildBasePayload(partido, current),
       variant: "halftime",
-      imageSrc: "/festejos/entretiempo.png",
+      imageSrc: getHalftimeLiveEventImage(),
     });
   }
 
@@ -112,7 +118,7 @@ function detectLiveEvents(
       ...buildBasePayload(partido, current),
       variant: "final",
       mensaje: "El ranking se actualizará según las reglas del prode",
-      imageSrc: "/festejos/finalizado.png",
+      imageSrc: getFinalLiveEventImage(),
     });
   }
 
@@ -136,7 +142,7 @@ function detectLiveEvents(
       equipoGol,
       jugador: "Autor por confirmar",
       minuto: current.minuto ?? undefined,
-      imageSrc: getRandomGoalImage(),
+      imageSrc: getRandomGoalLiveEventImage(),
     });
   }
 
@@ -162,11 +168,6 @@ function isFinalLike(status: string | null) {
     status === "FIN" ||
     status === "TERMINADO"
   );
-}
-
-function getRandomGoalImage() {
-  const goalIndex = Math.floor(Math.random() * 6) + 1;
-  return `/festejos/gol${goalIndex}.png`;
 }
 
 function buildBasePayload(

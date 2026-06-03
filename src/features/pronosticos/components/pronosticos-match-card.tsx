@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FlagImage } from "@/features/home/components/mobile-home/flag-image";
+import { getFixturePhaseLabel } from "@/features/fixture/utils/fixture.helpers";
 import {
   getFlagSrc,
   getTeamCode,
@@ -60,11 +61,7 @@ export function PronosticosMatchCard(props: PronosticosMatchCardProps) {
   const actual = getPredictionReference(partido);
   const centerLabel = getPronosticoCenterLabel(partido);
   const actionLabel = getPronosticoActionLabel(partido);
-  const phaseLabel =
-    partido.fase?.grupoNombre ??
-    partido.fase?.grupoCodigo ??
-    partido.fase?.nombre ??
-    "Sin fase";
+  const phaseLabel = getFixturePhaseLabel(partido);
   const isEditable = isEditableProps(props);
   const showAction = !isEditable && props.showAction !== false;
 

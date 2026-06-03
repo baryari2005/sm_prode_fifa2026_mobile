@@ -9,6 +9,7 @@ import type {
   FixtureSeleccion,
 } from "@/features/fixture/types/fixture.types";
 import {
+  getFixturePhaseLabel,
   formatFixtureTime12h,
   getFixtureStatus,
 } from "@/features/fixture/utils/fixture.helpers";
@@ -30,7 +31,7 @@ export function FixtureMatchCard({
   const status = getFixtureStatus(partido);
   const localName = partido.seleccionLocal?.nombre ?? "Local";
   const visitanteName = partido.seleccionVisitante?.nombre ?? "Visitante";
-  const phaseLabel = partido.fase?.nombre ?? "Sin fase";
+  const phaseLabel = getFixturePhaseLabel(partido);
   const score =
     partido.resultado &&
     (partido.resultado.estado?.toUpperCase() === "EN_JUEGO" ||
