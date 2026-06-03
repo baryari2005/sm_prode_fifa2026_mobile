@@ -63,7 +63,7 @@ export function MobileLoginShell({ children }: MobileLoginShellProps) {
           </div>
           <div className="pointer-events-none absolute -inset-x-16 -inset-y-10 opacity-62 [mask-image:radial-gradient(circle_at_center,black_34%,rgba(0,0,0,0.82)_56%,transparent_100%)]">
             <Image
-              src="/prode-sm1.png"
+              src="/prode.png"
               alt=""
               fill
               sizes="(max-width: 768px) 335px, 335px"
@@ -75,7 +75,7 @@ export function MobileLoginShell({ children }: MobileLoginShellProps) {
 
           <div className="absolute inset-0 overflow-hidden rounded-[2.35rem]">
             <Image
-              src="/prode-sm1.png"
+              src="/prode.png"
               alt="Prode Mundial 2026"
               fill
               sizes="(max-width: 768px) 335px, 335px"
