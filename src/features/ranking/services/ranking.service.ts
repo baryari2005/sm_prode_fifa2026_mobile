@@ -3,9 +3,11 @@ import { getApiErrorMessage } from "@/lib/http";
 import type { RankingResponse } from "@/features/ranking/types/ranking.types";
 
 export const rankingService = {
-  async getRanking() {
+  async getRanking(faseId?: number | null) {
     try {
-      const response = await axiosInstance.get<RankingResponse>("/pronosticos/ranking");
+      const response = await axiosInstance.get<RankingResponse>("/pronosticos/ranking", {
+        params: faseId != null ? { faseId } : undefined,
+      });
       return {
         miRanking: response.data.data?.miRanking ?? null,
         ranking: response.data.data?.ranking ?? [],

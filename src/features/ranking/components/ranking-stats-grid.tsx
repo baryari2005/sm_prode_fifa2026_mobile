@@ -4,11 +4,15 @@ import { cn } from "@/lib/utils";
 
 type RankingStatsGridProps = {
   row: RankingRow | null;
+  scopeLabel?: string;
 };
 
 type SummaryTone = "gold" | "sky" | "navy" | "violet";
 
-export function RankingStatsGrid({ row }: RankingStatsGridProps) {
+export function RankingStatsGrid({
+  row,
+  scopeLabel = "ranking general",
+}: RankingStatsGridProps) {
   const summary = row ?? {
     posicion: null,
     puntosTotales: 0,
@@ -22,7 +26,7 @@ export function RankingStatsGrid({ row }: RankingStatsGridProps) {
     {
       title: "Mi posición",
       value: summary.posicion ? `#${summary.posicion}` : "#0",
-      detail: "ranking general",
+      detail: scopeLabel,
       tone: "gold" as const,
     },
     {
@@ -131,18 +135,8 @@ function SummaryCard({
               toneStyles.badge
             )}
           >
-            {/* <Icon className="size-3" /> */}
             {title}
           </span>
-
-          {/* <div
-            className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-[1rem]",
-              toneStyles.iconWrap
-            )}
-          >
-            <Icon className="size-4" /> 
-          </div> */}
         </div>
 
         <p

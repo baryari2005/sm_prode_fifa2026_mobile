@@ -1,19 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { MobileHeroActions } from "@/components/shared/mobile/mobile-hero-actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ProtectedMobilePage } from "@/features/auth/components/protected-mobile-page";
 import { FEATURED_MATCH_POLL_MS } from "@/features/home/constants/home.constants";
+import { RankingActivityCard } from "@/features/ranking/components/ranking-activity-card";
 import { RankingEmptyState } from "@/features/ranking/components/ranking-empty-state";
 import { RankingGeneralList } from "@/features/ranking/components/ranking-general-list";
 import { RankingLoadingState } from "@/features/ranking/components/ranking-loading-state";
+import { RankingPhaseSelector } from "@/features/ranking/components/ranking-phase-selector";
 import { RankingStatsGrid } from "@/features/ranking/components/ranking-stats-grid";
+import {
+  aggregateRankingDatasets,
+  getDefaultRankingScope,
+  getRankingScopeLabel,
+  getRankingScopeOptions,
+  getRankingScopeSummaryLabel,
+  isGroupStagePhase,
+} from "@/features/ranking/helpers/ranking-phase.helpers";
 import { getRankingCurrentUserRow } from "@/features/ranking/helpers/ranking.helpers";
+import { rankingPhasesService } from "@/features/ranking/services/ranking-phases.service";
 import { rankingService } from "@/features/ranking/services/ranking.service";
-import type { RankingRow } from "@/features/ranking/types/ranking.types";
+import type {
+  RankingPhase,
+  RankingScopeValue,
+} from "@/features/ranking/types/ranking-phase.types";
+import type {
+  RankingHistorial,
+  RankingRow,
+} from "@/features/ranking/types/ranking.types";
 import { cheddar } from "@/lib/fonts";
 import { useAuthStore } from "@/stores/auth.store";
 
@@ -24,6 +42,11 @@ export function MobileRankingPage() {
 
   const [miRanking, setMiRanking] = useState<RankingRow | null>(null);
   const [ranking, setRanking] = useState<RankingRow[]>([]);
+  const [historial, setHistorial] = useState<RankingHistorial[]>([]);
+  const [fases, setFases] = useState<RankingPhase[]>([]);
+  const [faseActiva, setFaseActiva] = useState<RankingPhase | null>(null);
+  const [selectedScope, setSelectedScope] =
+    useState<RankingScopeValue>("grupos");
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +55,12 @@ export function MobileRankingPage() {
     () => Date.now() + FEATURED_MATCH_POLL_MS
   );
 
+  const rankingOptions = useMemo(
+    () => getRankingScopeOptions(faseActiva),
+    [faseActiva]
+  );
+  const selectedLabel = getRankingScopeLabel(selectedScope);
+  const summaryScopeLabel = getRankingScopeSummaryLabel(selectedScope);
   const currentUserRow = useMemo(
     () => miRanking ?? getRankingCurrentUserRow(ranking, user?.id),
     [miRanking, ranking, user?.id]
@@ -41,7 +70,11 @@ export function MobileRankingPage() {
     [nextRefreshAt, referenceTime]
   );
 
-  async function loadRanking(options?: { showLoader?: boolean }) {
+  async function loadRankingForScope(
+    scope: RankingScopeValue,
+    phasesToUse: RankingPhase[],
+    options?: { showLoader?: boolean }
+  ) {
     if (options?.showLoader !== false) {
       setLoading(true);
     } else {
@@ -50,10 +83,19 @@ export function MobileRankingPage() {
 
     setError(null);
 
+    const targetPhases = phasesToUse.filter((phase) =>
+      scope === "grupos" ? isGroupStagePhase(phase) : !isGroupStagePhase(phase)
+    );
+
     try {
-      const data = await rankingService.getRanking();
-      setMiRanking(data.miRanking);
-      setRanking(data.ranking);
+      const datasets = await Promise.all(
+        targetPhases.map((phase) => rankingService.getRanking(phase.id))
+      );
+
+      const aggregated = aggregateRankingDatasets(datasets, user?.id);
+      setMiRanking(aggregated.miRanking);
+      setRanking(aggregated.ranking);
+      setHistorial(aggregated.historial);
       setReferenceTime(Date.now());
       setNextRefreshAt(Date.now() + FEATURED_MATCH_POLL_MS);
     } catch (caughtError) {
@@ -66,15 +108,65 @@ export function MobileRankingPage() {
       toast.error(message);
       setMiRanking(null);
       setRanking([]);
+      setHistorial([]);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
   }
 
+  async function loadInitialRanking() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [fasesData, faseActivaData] = await Promise.all([
+        rankingPhasesService.getFases(),
+        rankingPhasesService.getFaseActiva().catch(() => null),
+      ]);
+
+      setFases(fasesData);
+      setFaseActiva(faseActivaData);
+
+      const defaultScope = getDefaultRankingScope(faseActivaData);
+      setSelectedScope(defaultScope);
+
+      await loadRankingForScope(defaultScope, fasesData, { showLoader: true });
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : "No pudimos cargar el ranking.";
+
+      setError(message);
+      toast.error(message);
+      setMiRanking(null);
+      setRanking([]);
+      setHistorial([]);
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  }
+
+  function handleScopeChange(scope: RankingScopeValue) {
+    if (scope === selectedScope) {
+      return;
+    }
+
+    setSelectedScope(scope);
+    void loadRankingForScope(scope, fases);
+  }
+
+  const refreshRanking = useEffectEvent(() => {
+    void loadRankingForScope(selectedScope, fases, { showLoader: false });
+  });
+  const runInitialRankingLoad = useEffectEvent(() => {
+    void loadInitialRanking();
+  });
+
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      void loadRanking();
+      runInitialRankingLoad();
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -85,7 +177,7 @@ export function MobileRankingPage() {
       setReferenceTime(Date.now());
     }, 1000);
     const pollId = window.setInterval(() => {
-      void loadRanking({ showLoader: false });
+      refreshRanking();
     }, FEATURED_MATCH_POLL_MS);
 
     return () => {
@@ -110,7 +202,7 @@ export function MobileRankingPage() {
       heroFooter={
         <MobileHeroActions
           isRefreshing={isRefreshing}
-          onRefresh={() => void loadRanking()}
+          onRefresh={() => void loadRankingForScope(selectedScope, fases)}
           refreshLabel={`${refreshInSeconds}s`}
         />
       }
@@ -120,6 +212,26 @@ export function MobileRankingPage() {
     >
       <div className="bg-transparent pb-8 text-white">
         <div className="flex w-full flex-col gap-4">
+          <section className="-mx-1 rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-3.5 text-white shadow-[0_16px_40px_rgba(0,0,0,0.18)]">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#AEEBFF]">
+              Filtros aplicables
+            </p>
+
+            <p className="mt-3 text-sm font-semibold text-white/78">
+              {selectedLabel}
+            </p>
+
+            <div className="mt-3">
+              <RankingPhaseSelector
+                options={rankingOptions}
+                value={selectedScope}
+                onValueChange={(value) =>
+                  handleScopeChange(value as RankingScopeValue)
+                }
+              />
+            </div>
+          </section>
+
           {error ? (
             <Alert className="rounded-2xl border-red-300/30 bg-red-500/10 text-red-100">
               <AlertTitle>No pudimos cargar el ranking.</AlertTitle>
@@ -141,18 +253,23 @@ export function MobileRankingPage() {
                 </p>
 
                 <div className="mt-3">
-                  <RankingStatsGrid row={currentUserRow} />
+                  <RankingStatsGrid
+                    row={currentUserRow}
+                    scopeLabel={summaryScopeLabel}
+                  />
                 </div>
               </section>
 
               <section className="-mx-1 rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-3.5 text-white shadow-[0_16px_40px_rgba(0,0,0,0.18)]">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-[#AEEBFF]">
-                  Tabla general
+                  {selectedLabel}
                 </p>
                 <div className="mt-3">
                   <RankingGeneralList rows={ranking} currentUserId={user?.id} />
                 </div>
               </section>
+
+              <RankingActivityCard historial={historial} title={selectedLabel} />
             </>
           )}
         </div>
