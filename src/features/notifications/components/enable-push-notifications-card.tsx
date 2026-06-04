@@ -5,7 +5,10 @@ import { Bell, BellOff, CheckCircle2, SmartphoneCharging } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { requestAndEnablePushNotifications } from "@/features/notifications/services/push-notifications.service";
+import {
+  disablePushNotifications,
+  requestAndEnablePushNotifications,
+} from "@/features/notifications/services/push-notifications.service";
 
 type PermissionState = NotificationPermission | "unsupported" | "unknown";
 
@@ -41,6 +44,28 @@ export function EnablePushNotificationsCard() {
         error instanceof Error
           ? error.message
           : "No pudimos activar las notificaciones.";
+
+      toast.error(message);
+      setPermission(getPermissionState());
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDisableNotifications() {
+    setSubmitting(true);
+
+    try {
+      await disablePushNotifications();
+      setPermission(getPermissionState());
+      toast.success("Notificaciones desactivadas.", {
+        description: "Dejaste de recibir avisos push en este dispositivo.",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No pudimos desactivar las notificaciones.";
 
       toast.error(message);
       setPermission(getPermissionState());
@@ -98,20 +123,29 @@ export function EnablePushNotificationsCard() {
         <SmartphoneCharging className="size-5 shrink-0 text-[#F7B731]" />
       </div>
 
-      <Button
-        type="button"
-        onClick={() => void handleEnableNotifications()}
-        disabled={submitting || isGranted || isUnsupported}
-        className="mt-4 h-11 w-full rounded-2xl border border-[#E7B03A] bg-[#FAB438] font-black text-[#1E2C46] hover:bg-[#F7C45A] disabled:border-white/10 disabled:bg-white/[0.06] disabled:text-white/60"
-      >
-        {isGranted
-          ? "Notificaciones activadas"
-          : isUnsupported
+      {isGranted ? (
+        <Button
+          type="button"
+          onClick={() => void handleDisableNotifications()}
+          disabled={submitting}
+          className="mt-4 h-11 w-full rounded-2xl border border-white/10 bg-white/[0.06] font-black text-white hover:bg-white/[0.10] disabled:border-white/10 disabled:bg-white/[0.06] disabled:text-white/60"
+        >
+          {submitting ? "Desactivando..." : "Desactivar notificaciones"}
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          onClick={() => void handleEnableNotifications()}
+          disabled={submitting || isUnsupported}
+          className="mt-4 h-11 w-full rounded-2xl border border-[#E7B03A] bg-[#FAB438] font-black text-[#1E2C46] hover:bg-[#F7C45A] disabled:border-white/10 disabled:bg-white/[0.06] disabled:text-white/60"
+        >
+          {isUnsupported
             ? "No disponible en este dispositivo"
             : submitting
               ? "Activando..."
               : "Activar notificaciones"}
-      </Button>
+        </Button>
+      )}
     </section>
   );
 }
