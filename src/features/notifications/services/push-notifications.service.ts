@@ -6,6 +6,7 @@ import { axiosInstance } from "@/lib/axios";
 import { env } from "@/lib/env";
 
 const PUSH_SW_PATH = "/push-sw.js";
+const PUSH_DISABLED_STORAGE_KEY = "push-notifications-disabled";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -17,6 +18,27 @@ function urlBase64ToUint8Array(base64String: string) {
 
 async function registerPushServiceWorker() {
   return navigator.serviceWorker.register(PUSH_SW_PATH, { scope: "/" });
+}
+
+function isPushDisabledByUser() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(PUSH_DISABLED_STORAGE_KEY) === "true";
+}
+
+function setPushDisabledByUser(disabled: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (disabled) {
+    window.localStorage.setItem(PUSH_DISABLED_STORAGE_KEY, "true");
+    return;
+  }
+
+  window.localStorage.removeItem(PUSH_DISABLED_STORAGE_KEY);
 }
 
 async function getOrCreateSubscription(registration: ServiceWorkerRegistration) {
@@ -93,8 +115,10 @@ export async function requestAndEnablePushNotifications() {
 
   try {
     await syncSubscriptionToApi(subscription, registration);
+    setPushDisabledByUser(false);
   } catch (error) {
     if (error instanceof AxiosError && error.response?.status === 404) {
+      setPushDisabledByUser(false);
       return subscription;
     }
 
@@ -113,13 +137,17 @@ export async function syncExistingPushSubscription() {
     return null;
   }
 
+  if (isPushDisabledByUser()) {
+    return null;
+  }
+
   const registration = await preparePushNotifications();
 
   if (!registration) {
     return null;
   }
 
-  const subscription = await getOrCreateSubscription(registration);
+  const subscription = await registration.pushManager.getSubscription();
 
   if (!subscription) {
     return null;
@@ -145,6 +173,7 @@ export async function disablePushNotifications() {
   const subscription = await registration?.pushManager.getSubscription();
 
   if (!subscription) {
+    setPushDisabledByUser(true);
     return;
   }
 
@@ -161,4 +190,5 @@ export async function disablePushNotifications() {
   }
 
   await subscription.unsubscribe();
+  setPushDisabledByUser(true);
 }
