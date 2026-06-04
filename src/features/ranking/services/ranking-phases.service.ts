@@ -7,7 +7,7 @@ export const rankingPhasesService = {
     try {
       const response = await axiosInstance.get("/fases");
       const raw = response.data;
-      const items = Array.isArray(raw)
+      const items: unknown[] = Array.isArray(raw)
         ? raw
         : Array.isArray(raw.data)
           ? raw.data
