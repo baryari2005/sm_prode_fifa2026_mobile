@@ -1,41 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, BellOff, CheckCircle2, SmartphoneCharging } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
   disablePushNotifications,
+  getPushNotificationsStatus,
   requestAndEnablePushNotifications,
+  type PushNotificationsStatus,
 } from "@/features/notifications/services/push-notifications.service";
 
-type PermissionState = NotificationPermission | "unsupported" | "unknown";
-
-function getPermissionState(): PermissionState {
-  if (typeof window === "undefined") {
-    return "unknown";
-  }
-
-  if (!("Notification" in window)) {
-    return "unsupported";
-  }
-
-  return Notification.permission;
+function getDefaultStatus(): PushNotificationsStatus {
+  return {
+    permission: "unknown",
+    isSubscribed: false,
+    isDisabledByUser: false,
+  };
 }
 
 export function EnablePushNotificationsCard() {
-  const [permission, setPermission] = useState<PermissionState>(() =>
-    getPermissionState()
-  );
+  const [status, setStatus] = useState<PushNotificationsStatus>(getDefaultStatus);
   const [submitting, setSubmitting] = useState(false);
+
+  async function refreshStatus() {
+    setStatus(await getPushNotificationsStatus());
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void getPushNotificationsStatus().then((nextStatus) => {
+      if (!cancelled) {
+        setStatus(nextStatus);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleEnableNotifications() {
     setSubmitting(true);
 
     try {
       await requestAndEnablePushNotifications();
-      setPermission(getPermissionState());
+      await refreshStatus();
       toast.success("Notificaciones activadas.", {
         description: "Te vamos a avisar aunque cierres la app.",
       });
@@ -46,7 +58,7 @@ export function EnablePushNotificationsCard() {
           : "No pudimos activar las notificaciones.";
 
       toast.error(message);
-      setPermission(getPermissionState());
+      await refreshStatus();
     } finally {
       setSubmitting(false);
     }
@@ -57,7 +69,7 @@ export function EnablePushNotificationsCard() {
 
     try {
       await disablePushNotifications();
-      setPermission(getPermissionState());
+      await refreshStatus();
       toast.success("Notificaciones desactivadas.", {
         description: "Dejaste de recibir avisos push en este dispositivo.",
       });
@@ -68,23 +80,34 @@ export function EnablePushNotificationsCard() {
           : "No pudimos desactivar las notificaciones.";
 
       toast.error(message);
-      setPermission(getPermissionState());
+      await refreshStatus();
     } finally {
       setSubmitting(false);
     }
   }
 
-  const isGranted = permission === "granted";
-  const isDenied = permission === "denied";
-  const isUnsupported = permission === "unsupported";
+  const isGranted = status.permission === "granted";
+  const isDenied = status.permission === "denied";
+  const isUnsupported = status.permission === "unsupported";
+  const isActive = isGranted && status.isSubscribed && !status.isDisabledByUser;
+
+  const currentStateLabel = isActive
+    ? "Activadas"
+    : isDenied
+      ? "Bloqueadas en este dispositivo"
+      : isUnsupported
+        ? "No compatibles"
+        : status.isDisabledByUser
+          ? "Desactivadas en este dispositivo"
+          : "Pendientes de activar";
 
   return (
     <section className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-4 text-white shadow-[0_16px_40px_rgba(0,0,0,0.18)]">
       <div className="flex items-start gap-3">
         <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[#5993b6]/24 bg-[#5993b6]/14 text-[#AEEBFF]">
-          {isGranted ? (
+          {isActive ? (
             <CheckCircle2 className="size-5 text-[#BFFFE4]" />
-          ) : isDenied ? (
+          ) : isDenied || status.isDisabledByUser ? (
             <BellOff className="size-5 text-[#F7E7A1]" />
           ) : (
             <Bell className="size-5" />
@@ -110,20 +133,14 @@ export function EnablePushNotificationsCard() {
             Estado actual
           </p>
           <p className="mt-1 text-sm font-semibold text-white">
-            {isGranted
-              ? "Activadas"
-              : isDenied
-                ? "Bloqueadas en este dispositivo"
-                : isUnsupported
-                  ? "No compatibles"
-                  : "Pendientes de activar"}
+            {currentStateLabel}
           </p>
         </div>
 
         <SmartphoneCharging className="size-5 shrink-0 text-[#F7B731]" />
       </div>
 
-      {isGranted ? (
+      {isActive ? (
         <Button
           type="button"
           onClick={() => void handleDisableNotifications()}
@@ -143,7 +160,9 @@ export function EnablePushNotificationsCard() {
             ? "No disponible en este dispositivo"
             : submitting
               ? "Activando..."
-              : "Activar notificaciones"}
+              : status.isDisabledByUser
+                ? "Reactivar notificaciones"
+                : "Activar notificaciones"}
         </Button>
       )}
     </section>

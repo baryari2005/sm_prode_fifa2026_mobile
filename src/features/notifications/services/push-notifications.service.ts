@@ -8,6 +8,12 @@ import { env } from "@/lib/env";
 const PUSH_SW_PATH = "/push-sw.js";
 const PUSH_DISABLED_STORAGE_KEY = "push-notifications-disabled";
 
+export type PushNotificationsStatus = {
+  permission: NotificationPermission | "unsupported" | "unknown";
+  isSubscribed: boolean;
+  isDisabledByUser: boolean;
+};
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -39,6 +45,43 @@ function setPushDisabledByUser(disabled: boolean) {
   }
 
   window.localStorage.removeItem(PUSH_DISABLED_STORAGE_KEY);
+}
+
+export async function getPushNotificationsStatus(): Promise<PushNotificationsStatus> {
+  if (typeof window === "undefined") {
+    return {
+      permission: "unknown",
+      isSubscribed: false,
+      isDisabledByUser: false,
+    };
+  }
+
+  if (!("Notification" in window)) {
+    return {
+      permission: "unsupported",
+      isSubscribed: false,
+      isDisabledByUser: false,
+    };
+  }
+
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return {
+      permission: Notification.permission,
+      isSubscribed: false,
+      isDisabledByUser: isPushDisabledByUser(),
+    };
+  }
+
+  const registration =
+    (await navigator.serviceWorker.getRegistration(PUSH_SW_PATH)) ??
+    (await navigator.serviceWorker.getRegistration());
+  const subscription = await registration?.pushManager.getSubscription();
+
+  return {
+    permission: Notification.permission,
+    isSubscribed: Boolean(subscription),
+    isDisabledByUser: isPushDisabledByUser(),
+  };
 }
 
 async function getOrCreateSubscription(registration: ServiceWorkerRegistration) {
@@ -100,6 +143,9 @@ export async function requestAndEnablePushNotifications() {
   if (permission !== "granted") {
     throw new Error("No habilitaste los permisos de notificaciones.");
   }
+
+  // Si el usuario decide reactivar, levantamos el bloqueo local antes de resincronizar.
+  setPushDisabledByUser(false);
 
   const registration = await preparePushNotifications();
 
