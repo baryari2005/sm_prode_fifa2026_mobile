@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { FlagImage } from "@/features/home/components/mobile-home/flag-image";
+import { EquipoClasificadoSelector } from "@/features/pronosticos/components/equipo-clasificado-selector";
 import {
   getFlagSrc,
   getTeamCode,
@@ -25,6 +26,7 @@ import type { PronosticoPartido } from "@/features/pronosticos/types/pronosticos
 import {
   getPredictionReference,
   isPronosticoBlocked,
+  shouldSelectEquipoClasificado,
 } from "@/features/pronosticos/utils/pronosticos.helpers";
 import { cheddar } from "@/lib/fonts";
 
@@ -55,7 +57,7 @@ export function PronosticoDialog({
   }
 
   const actual = getPredictionReference(partido);
-  const dialogKey = `${partido.id}-${actual?.golesLocal ?? "x"}-${actual?.golesVisitante ?? "x"}`;
+  const dialogKey = `${partido.id}-${actual?.golesLocal ?? "x"}-${actual?.golesVisitante ?? "x"}-${actual?.equipoClasificadoId ?? "x"}`;
 
   return (
     <PronosticoDialogInner
@@ -79,13 +81,31 @@ function PronosticoDialogInner({
   const [golesVisitante, setGolesVisitante] = useState(
     String(actual?.golesVisitante ?? 0)
   );
+  const [equipoClasificadoId, setEquipoClasificadoId] = useState<string | null>(
+    actual?.equipoClasificadoId ?? null
+  );
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const blocked = isPronosticoBlocked(partido);
+  const golesLocalNumber = Number(golesLocal || 0);
+  const golesVisitanteNumber = Number(golesVisitante || 0);
+  const showEquipoClasificadoSelector = shouldSelectEquipoClasificado(
+    partido,
+    golesLocalNumber,
+    golesVisitanteNumber
+  );
 
   async function handleSave() {
     if (blocked) {
       toast.error("El pronóstico ya está cerrado para este partido.");
+      return;
+    }
+
+    if (showEquipoClasificadoSelector && !equipoClasificadoId) {
+      const message = "Seleccioná quién pasa por penales.";
+      setValidationError(message);
+      toast.error(message);
       return;
     }
 
@@ -94,8 +114,11 @@ function PronosticoDialogInner({
 
       await pronosticosService.upsertPronostico({
         partidoId: partido.id,
-        golesLocal: Number(golesLocal),
-        golesVisitante: Number(golesVisitante),
+        golesLocal: golesLocalNumber,
+        golesVisitante: golesVisitanteNumber,
+        equipoClasificadoId: showEquipoClasificadoSelector
+          ? equipoClasificadoId
+          : null,
       });
 
       toast.success("Pronóstico guardado correctamente.");
@@ -178,7 +201,19 @@ function PronosticoDialogInner({
                 <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                   <ScoreInput
                     value={golesLocal}
-                    onChange={setGolesLocal}
+                    onChange={(value) => {
+                      setGolesLocal(value);
+                      setValidationError(null);
+                      if (
+                        !shouldSelectEquipoClasificado(
+                          partido,
+                          Number(value || 0),
+                          golesVisitanteNumber
+                        )
+                      ) {
+                        setEquipoClasificadoId(null);
+                      }
+                    }}
                     disabled={blocked || saving}
                   />
 
@@ -186,10 +221,35 @@ function PronosticoDialogInner({
 
                   <ScoreInput
                     value={golesVisitante}
-                    onChange={setGolesVisitante}
+                    onChange={(value) => {
+                      setGolesVisitante(value);
+                      setValidationError(null);
+                      if (
+                        !shouldSelectEquipoClasificado(
+                          partido,
+                          golesLocalNumber,
+                          Number(value || 0)
+                        )
+                      ) {
+                        setEquipoClasificadoId(null);
+                      }
+                    }}
                     disabled={blocked || saving}
                   />
                 </div>
+
+                {showEquipoClasificadoSelector ? (
+                  <EquipoClasificadoSelector
+                    partido={partido}
+                    value={equipoClasificadoId}
+                    disabled={blocked || saving}
+                    error={validationError}
+                    onChange={(equipoId) => {
+                      setEquipoClasificadoId(equipoId);
+                      setValidationError(null);
+                    }}
+                  />
+                ) : null}
               </div>
 
               {blocked ? (

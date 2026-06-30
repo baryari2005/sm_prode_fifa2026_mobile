@@ -3,6 +3,7 @@ import type { FixturePartido } from "@/features/fixture/types/fixture.types";
 export type PronosticoExistente = {
   golesLocal: number | null;
   golesVisitante: number | null;
+  equipoClasificadoId?: string | null;
 };
 
 export type PronosticoPartido = FixturePartido & {
@@ -22,4 +23,5 @@ export type UpsertPronosticoPayload = {
   partidoId: string;
   golesLocal: number;
   golesVisitante: number;
+  equipoClasificadoId?: string | null;
 };

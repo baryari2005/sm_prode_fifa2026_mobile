@@ -9,12 +9,14 @@ import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ProtectedMobilePage } from "@/features/auth/components/protected-mobile-page";
+import { EquipoClasificadoSelector } from "@/features/pronosticos/components/equipo-clasificado-selector";
 import { PronosticosMatchCard } from "@/features/pronosticos/components/pronosticos-match-card";
 import { pronosticosService } from "@/features/pronosticos/services/pronosticos.service";
 import type { PronosticoPartido } from "@/features/pronosticos/types/pronosticos.types";
 import {
   getPredictionReference,
   isPronosticoBlocked,
+  shouldSelectEquipoClasificado,
 } from "@/features/pronosticos/utils/pronosticos.helpers";
 import { cheddar } from "@/lib/fonts";
 
@@ -37,6 +39,16 @@ export default function CargarPronosticoPartidoPage() {
 
   const [golesLocal, setGolesLocal] = useState("0");
   const [golesVisitante, setGolesVisitante] = useState("0");
+  const [equipoClasificadoId, setEquipoClasificadoId] = useState<string | null>(
+    null
+  );
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const golesLocalNumber = Number(golesLocal || 0);
+  const golesVisitanteNumber = Number(golesVisitante || 0);
+  const showEquipoClasificadoSelector = partido
+    ? shouldSelectEquipoClasificado(partido, golesLocalNumber, golesVisitanteNumber)
+    : false;
 
   const isDirty = useMemo(() => {
     if (!partido) return false;
@@ -45,12 +57,35 @@ export default function CargarPronosticoPartidoPage() {
       return true;
     }
 
+    if (showEquipoClasificadoSelector && !equipoClasificadoId) {
+      return true;
+    }
+
+    const nextEquipoClasificadoId = showEquipoClasificadoSelector
+      ? equipoClasificadoId
+      : null;
+    const currentEquipoClasificadoId = shouldSelectEquipoClasificado(
+      partido,
+      Number(actual.golesLocal ?? 0),
+      Number(actual.golesVisitante ?? 0)
+    )
+      ? actual.equipoClasificadoId ?? null
+      : null;
+
     return (
       normalizeScore(golesLocal) !== normalizeScore(String(actual.golesLocal ?? 0)) ||
       normalizeScore(golesVisitante) !==
-        normalizeScore(String(actual.golesVisitante ?? 0))
+        normalizeScore(String(actual.golesVisitante ?? 0)) ||
+      nextEquipoClasificadoId !== currentEquipoClasificadoId
     );
-  }, [actual, golesLocal, golesVisitante, partido]);
+  }, [
+    actual,
+    equipoClasificadoId,
+    golesLocal,
+    golesVisitante,
+    partido,
+    showEquipoClasificadoSelector,
+  ]);
 
   async function loadPartido(options?: { showLoader?: boolean }) {
     if (options?.showLoader !== false) {
@@ -74,6 +109,8 @@ export default function CargarPronosticoPartidoPage() {
       setPartido(found);
       setGolesLocal(String(current?.golesLocal ?? 0));
       setGolesVisitante(String(current?.golesVisitante ?? 0));
+      setEquipoClasificadoId(current?.equipoClasificadoId ?? null);
+      setValidationError(null);
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -90,12 +127,34 @@ export default function CargarPronosticoPartidoPage() {
   function handleScoreChange(field: ScoreField, value: string) {
     if (blocked) return;
 
+    setValidationError(null);
+
     if (field === "golesLocal") {
       setGolesLocal(value);
+      if (
+        partido &&
+        !shouldSelectEquipoClasificado(
+          partido,
+          Number(value || 0),
+          golesVisitanteNumber
+        )
+      ) {
+        setEquipoClasificadoId(null);
+      }
       return;
     }
 
     setGolesVisitante(value);
+    if (
+      partido &&
+      !shouldSelectEquipoClasificado(
+        partido,
+        golesLocalNumber,
+        Number(value || 0)
+      )
+    ) {
+      setEquipoClasificadoId(null);
+    }
   }
 
   async function handleSave() {
@@ -106,13 +165,23 @@ export default function CargarPronosticoPartidoPage() {
       return;
     }
 
+    if (showEquipoClasificadoSelector && !equipoClasificadoId) {
+      const message = "Seleccioná quién pasa por penales.";
+      setValidationError(message);
+      toast.error(message);
+      return;
+    }
+
     try {
       setSaving(true);
 
       await pronosticosService.upsertPronostico({
         partidoId: partido.id,
-        golesLocal: Number(golesLocal || 0),
-        golesVisitante: Number(golesVisitante || 0),
+        golesLocal: golesLocalNumber,
+        golesVisitante: golesVisitanteNumber,
+        equipoClasificadoId: showEquipoClasificadoSelector
+          ? equipoClasificadoId
+          : null,
       });
 
       toast.success("Pronóstico guardado correctamente.");
@@ -231,6 +300,19 @@ export default function CargarPronosticoPartidoPage() {
                   isDirty={isDirty}
                   onScoreChange={handleScoreChange}
                 />
+
+                {showEquipoClasificadoSelector ? (
+                  <EquipoClasificadoSelector
+                    partido={partido}
+                    value={equipoClasificadoId}
+                    disabled={blocked || saving}
+                    error={validationError}
+                    onChange={(equipoId) => {
+                      setEquipoClasificadoId(equipoId);
+                      setValidationError(null);
+                    }}
+                  />
+                ) : null}
               </section>
 
               <Button

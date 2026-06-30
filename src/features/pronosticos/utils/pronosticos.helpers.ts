@@ -6,6 +6,26 @@ export function getPredictionReference(partido: PronosticoPartido) {
   return partido.miPrediccion ?? partido.pronostico ?? partido.prediccion ?? null;
 }
 
+export function isFaseEliminatoria(partido: PronosticoPartido) {
+  const phaseName = normalizePhaseName(partido.fase?.nombre ?? "");
+
+  if (!phaseName || phaseName.includes("grupo")) {
+    return false;
+  }
+
+  return ELIMINATION_PHASE_KEYWORDS.some((keyword) =>
+    phaseName.includes(keyword)
+  );
+}
+
+export function shouldSelectEquipoClasificado(
+  partido: PronosticoPartido,
+  golesLocal: number,
+  golesVisitante: number
+) {
+  return isFaseEliminatoria(partido) && golesLocal === golesVisitante;
+}
+
 export function isPronosticoBlocked(partido: PronosticoPartido) {
   const estado = partido.resultado?.estado?.toUpperCase();
 
@@ -17,6 +37,29 @@ export function isPronosticoBlocked(partido: PronosticoPartido) {
   const closeTime = matchTime - PREDICTION_CLOSE_MINUTES_BEFORE * 60 * 1000;
 
   return Date.now() >= closeTime;
+}
+
+const ELIMINATION_PHASE_KEYWORDS = [
+  "16vos",
+  "dieciseisavos",
+  "octavos",
+  "8vos",
+  "cuartos",
+  "4tos",
+  "semifinal",
+  "semi final",
+  "final",
+  "tercer puesto",
+  "3 y 4",
+  "3er puesto",
+];
+
+function normalizePhaseName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 export function getPronosticoStatus(partido: PronosticoPartido) {
