@@ -6,6 +6,13 @@ import { getFixturePhaseLabel } from "@/features/fixture/utils/fixture.helpers";
 import { pronosticosService } from "@/features/pronosticos/services/pronosticos.service";
 import type { PronosticoPartido } from "@/features/pronosticos/types/pronosticos.types";
 import { getPredictionReference } from "@/features/pronosticos/utils/pronosticos.helpers";
+import {
+  aggregateRankingDatasets,
+  getDefaultRankingScope,
+  getRankingPhasesForScope,
+  getRankingPhasesWithFinalizedMatches,
+} from "@/features/ranking/helpers/ranking-phase.helpers";
+import { rankingPhasesService } from "@/features/ranking/services/ranking-phases.service";
 import { rankingService } from "@/features/ranking/services/ranking.service";
 
 type HomeDashboardData = {
@@ -42,8 +49,9 @@ export function useHomeDashboard(featuredMatchId?: string) {
       setIsLoading(true);
 
       try {
-        const [rankingData, pronosticos] = await Promise.all([
-          rankingService.getRanking(),
+        const [fases, faseActiva, pronosticos] = await Promise.all([
+          rankingPhasesService.getFases().catch(() => []),
+          rankingPhasesService.getFaseActiva().catch(() => null),
           pronosticosService.getFixturePronosticos(),
         ]);
 
@@ -62,6 +70,16 @@ export function useHomeDashboard(featuredMatchId?: string) {
         const faseActualItems = faseActualId
           ? pronosticos.filter((partido) => partido.fase?.id === faseActualId)
           : [];
+        const rankingScope = getDefaultRankingScope(faseActiva);
+        const rankingPhases = getRankingPhasesWithFinalizedMatches(
+          getRankingPhasesForScope(rankingScope, fases),
+          pronosticos
+        );
+        const rankingData = aggregateRankingDatasets(
+          await Promise.all(
+            rankingPhases.map((phase) => rankingService.getRanking(phase.id))
+          )
+        );
 
         setData({
           pronosticados,

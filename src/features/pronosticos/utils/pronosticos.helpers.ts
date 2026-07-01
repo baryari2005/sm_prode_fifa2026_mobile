@@ -1,6 +1,6 @@
 import type { PronosticoPartido } from "@/features/pronosticos/types/pronosticos.types";
 
-export const PREDICTION_CLOSE_MINUTES_BEFORE = 60;
+export const PREDICTION_CLOSE_MINUTES_BEFORE = 30;
 
 export function getPredictionReference(partido: PronosticoPartido) {
   return partido.miPrediccion ?? partido.pronostico ?? partido.prediccion ?? null;

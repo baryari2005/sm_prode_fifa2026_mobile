@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowBigRight, ArrowRight, CheckCircle2, Lightbulb, MonitorSmartphone } from "lucide-react";
+import { ArrowBigRight, CheckCircle2, Lightbulb, MonitorSmartphone } from "lucide-react";
 import {
   Drawer,
   DrawerClose,
@@ -25,7 +25,7 @@ export function HomeSummaryRow({
   faseLabel,
   faseValue,
 }: HomeSummaryRowProps) {
-  const hasExtraInfo = Boolean(fuente || faseLabel || faseValue);
+  const hasExtraInfo = Boolean(fuente || (faseLabel && faseValue));
 
   return (
     <div className="mt-2 flex flex-col gap-2">
@@ -43,6 +43,7 @@ export function HomeSummaryRow({
             className="h-auto w-[132px] drop-shadow-[0_10px_18px_rgba(0,0,0,0.28)]"
             sizes="132px"
             aria-hidden="true"
+            style={{ height: "auto" }}
           />
         </div>
 
@@ -66,7 +67,7 @@ export function HomeSummaryRow({
               Desde una PC o tablet.
             </p>
 
-            {/* {hasExtraInfo && (
+            {hasExtraInfo ? (
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {fuente && (
                   <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-bold text-white/55">
@@ -80,7 +81,7 @@ export function HomeSummaryRow({
                   </span>
                 )}
               </div>
-            )} */}
+            ) : null}
 
             <Drawer>
               <DrawerTrigger asChild>

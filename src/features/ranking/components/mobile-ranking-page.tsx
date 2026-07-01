@@ -16,11 +16,14 @@ import { RankingStatsGrid } from "@/features/ranking/components/ranking-stats-gr
 import {
   aggregateRankingDatasets,
   getDefaultRankingScope,
+  getRankingPhasesForScope,
+  getRankingPhasesWithFinalizedMatches,
   getRankingScopeLabel,
   getRankingScopeOptions,
   getRankingScopeSummaryLabel,
-  isGroupStagePhase,
 } from "@/features/ranking/helpers/ranking-phase.helpers";
+import { pronosticosService } from "@/features/pronosticos/services/pronosticos.service";
+import type { PronosticoPartido } from "@/features/pronosticos/types/pronosticos.types";
 import { getRankingCurrentUserRow } from "@/features/ranking/helpers/ranking.helpers";
 import { rankingPhasesService } from "@/features/ranking/services/ranking-phases.service";
 import { rankingService } from "@/features/ranking/services/ranking.service";
@@ -44,6 +47,7 @@ export function MobileRankingPage() {
   const [ranking, setRanking] = useState<RankingRow[]>([]);
   const [historial, setHistorial] = useState<RankingHistorial[]>([]);
   const [fases, setFases] = useState<RankingPhase[]>([]);
+  const [partidos, setPartidos] = useState<PronosticoPartido[]>([]);
   const [faseActiva, setFaseActiva] = useState<RankingPhase | null>(null);
   const [selectedScope, setSelectedScope] =
     useState<RankingScopeValue>("grupos");
@@ -73,6 +77,7 @@ export function MobileRankingPage() {
   async function loadRankingForScope(
     scope: RankingScopeValue,
     phasesToUse: RankingPhase[],
+    partidosToUse: PronosticoPartido[],
     options?: { showLoader?: boolean }
   ) {
     if (options?.showLoader !== false) {
@@ -83,8 +88,9 @@ export function MobileRankingPage() {
 
     setError(null);
 
-    const targetPhases = phasesToUse.filter((phase) =>
-      scope === "grupos" ? isGroupStagePhase(phase) : !isGroupStagePhase(phase)
+    const targetPhases = getRankingPhasesWithFinalizedMatches(
+      getRankingPhasesForScope(scope, phasesToUse),
+      partidosToUse
     );
 
     try {
@@ -120,18 +126,22 @@ export function MobileRankingPage() {
     setError(null);
 
     try {
-      const [fasesData, faseActivaData] = await Promise.all([
+      const [fasesData, faseActivaData, partidosData] = await Promise.all([
         rankingPhasesService.getFases(),
         rankingPhasesService.getFaseActiva().catch(() => null),
+        pronosticosService.getFixturePronosticos(),
       ]);
 
       setFases(fasesData);
       setFaseActiva(faseActivaData);
+      setPartidos(partidosData);
 
       const defaultScope = getDefaultRankingScope(faseActivaData);
       setSelectedScope(defaultScope);
 
-      await loadRankingForScope(defaultScope, fasesData, { showLoader: true });
+      await loadRankingForScope(defaultScope, fasesData, partidosData, {
+        showLoader: true,
+      });
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -154,15 +164,34 @@ export function MobileRankingPage() {
     }
 
     setSelectedScope(scope);
-    void loadRankingForScope(scope, fases);
+    void loadRankingForScope(scope, fases, partidos);
   }
 
-  const refreshRanking = useEffectEvent(() => {
-    void loadRankingForScope(selectedScope, fases, { showLoader: false });
-  });
+  async function refreshRanking() {
+    try {
+      const partidosData = await pronosticosService.getFixturePronosticos();
+      setPartidos(partidosData);
+      await loadRankingForScope(selectedScope, fases, partidosData, {
+        showLoader: false,
+      });
+    } catch {
+      await loadRankingForScope(selectedScope, fases, partidos, {
+        showLoader: false,
+      });
+    }
+  }
+
   const runInitialRankingLoad = useEffectEvent(() => {
     void loadInitialRanking();
   });
+  const loadRankingForScopeFromEffect = useEffectEvent(
+    (
+      scope: RankingScopeValue,
+      phasesToUse: RankingPhase[],
+      partidosToUse: PronosticoPartido[],
+      options?: { showLoader?: boolean }
+    ) => loadRankingForScope(scope, phasesToUse, partidosToUse, options)
+  );
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -173,18 +202,32 @@ export function MobileRankingPage() {
   }, []);
 
   useEffect(() => {
+    async function refreshRankingInterval() {
+      try {
+        const partidosData = await pronosticosService.getFixturePronosticos();
+        setPartidos(partidosData);
+        await loadRankingForScopeFromEffect(selectedScope, fases, partidosData, {
+          showLoader: false,
+        });
+      } catch {
+        await loadRankingForScopeFromEffect(selectedScope, fases, partidos, {
+          showLoader: false,
+        });
+      }
+    }
+
     const tickId = window.setInterval(() => {
       setReferenceTime(Date.now());
     }, 1000);
     const pollId = window.setInterval(() => {
-      refreshRanking();
+      void refreshRankingInterval();
     }, FEATURED_MATCH_POLL_MS);
 
     return () => {
       window.clearInterval(tickId);
       window.clearInterval(pollId);
     };
-  }, []);
+  }, [selectedScope, fases, partidos]);
 
   return (
     <ProtectedMobilePage
@@ -202,7 +245,7 @@ export function MobileRankingPage() {
       heroFooter={
         <MobileHeroActions
           isRefreshing={isRefreshing}
-          onRefresh={() => void loadRankingForScope(selectedScope, fases)}
+          onRefresh={() => void refreshRanking()}
           refreshLabel={`${refreshInSeconds}s`}
         />
       }

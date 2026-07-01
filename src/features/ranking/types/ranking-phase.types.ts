@@ -3,7 +3,7 @@ export type RankingPhase = {
   nombre: string;
 };
 
-export type RankingScopeValue = "grupos" | "eliminatorias";
+export type RankingScopeValue = "grupos" | "dieciseisavos" | "eliminatorias";
 
 export type RankingPhaseOption = {
   value: RankingScopeValue;

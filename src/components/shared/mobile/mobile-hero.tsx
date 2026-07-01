@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowBigLeft, ArrowLeft, Stars, User } from 'lucide-react';
+import { ArrowBigLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -143,7 +143,7 @@ export function MobileHero({
               "absolute inset-0 h-full w-full object-contain blur-[12px] transition-opacity duration-500 ease-out",
               isImageVisible ? "opacity-22" : "opacity-0"
             )}
-            onLoadingComplete={() => setIsImageVisible(true)}
+            onLoad={() => setIsImageVisible(true)}
             onError={() => {
               if (fallbackImageSrc && fallbackImageSrc !== activeImageSrc) {
                 setActiveImageSrc(fallbackImageSrc);
@@ -163,7 +163,7 @@ export function MobileHero({
               "absolute inset-0 h-full w-full object-contain transition-opacity duration-500 ease-out",
               isImageVisible ? "opacity-58" : "opacity-0"
             )}
-            onLoadingComplete={() => setIsImageVisible(true)}
+            onLoad={() => setIsImageVisible(true)}
             onError={() => {
               if (fallbackImageSrc && fallbackImageSrc !== activeImageSrc) {
                 setActiveImageSrc(fallbackImageSrc);
@@ -193,6 +193,7 @@ export function MobileHero({
                   className="h-auto w-[92px] shrink-0"
                   sizes="92px"
                   priority
+                  style={{ height: "auto" }}
                 />
               ) : null}
 
